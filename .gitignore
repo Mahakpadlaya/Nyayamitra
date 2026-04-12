@@ -1,0 +1,16 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+.env
+# Root-level SQLite only (do not use *.sqlite3 — Chroma persists chroma_db/*.sqlite3)
+/*.sqlite3
+legal_advisor.db
+.pytest_cache/
+.mypy_cache/
+dist/
+build/
+*.egg-info/
+.vectorstore/
+node_modules/
+frontend/node_modules/

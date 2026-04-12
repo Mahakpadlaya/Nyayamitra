@@ -1,0 +1,26 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+# After push, use Dashboard → New → Blueprint → connect repo, or paste this file.
+# Set secret env vars when prompted (CORS_ORIGINS, API keys).
+
+services:
+  - type: web
+    name: nyayamitra-api
+    runtime: python
+    region: singapore
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: "uvicorn backend.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: LLM_PROVIDER
+        value: auto
+      - key: RAG_TOP_K
+        value: "5"
+      # Comma-separated origins, e.g. https://your-app.vercel.app,http://localhost:5173
+      - key: CORS_ORIGINS
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false

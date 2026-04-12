@@ -1,0 +1,31 @@
+Alternatives to Pile-of-Law (smaller, India / Constitution)
+
+Why skip full Pile-of-Law
+  - Multi-terabyte scale; most resume projects only need thousands to low millions of tokens.
+  - For Indian Constitution Q&A, targeted corpora outperform generic US-heavy mixes.
+
+Recommended small Hugging Face datasets (verify license before production)
+
+1) Constitution full text (RAG + chunking)
+   - Susant-Achary/constitution-of-india-dataset
+     Structured rows (articles/parts); good for embedding + retrieval.
+   - Use for: vector index, citations in answers.
+
+2) Instruction / QA for fine-tuning (optional)
+   - malarventhan/indian-legal-texts-finetuning
+     Q&A from Constitution, IPC, CrPC; manageable size.
+   - RMani1/indian-legal-dataset-indian-law
+     ~1.5k instruction-style pairs across statutes + Constitution.
+   - Techmaestro369/indian-legal-texts-finetuning
+     Similar lineage; pick ONE to avoid duplicate training signal.
+
+3) Official primary source (no ML dataset)
+   - Constitution of India as published on indiacode.nic.in / Legislative Department PDFs.
+   - Download once, version with amendment date; best for "ground truth" RAG.
+
+Strategy
+  - Demo path: RAG only on constitution-of-india-dataset + PDF you trust (no 7B fine-tune).
+  - Fine-tune path: LoRA on a small instruct model (e.g. Llama/Mistral family) using only the Indian QA JSON above — not full Pile-of-Law.
+
+Indian Kanoon / third-party scraping
+  - Respect robots.txt and terms of service; prefer official portals or licensed datasets for portfolios.
