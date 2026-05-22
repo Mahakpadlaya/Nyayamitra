@@ -1,119 +1,57 @@
 import { useEffect, useState } from "react";
 import "./App.css";
-import { fetchHealth } from "./api";
-import { ADVISOR } from "./avatars";
-import { ChatPanel } from "./components/ChatPanel";
-import { PlanPanel } from "./components/PlanPanel";
+import { fetchMe } from "./api";
+import { clearAuth, getStoredUser, getToken } from "./authStorage";
+import { AuthPage } from "./components/AuthPage";
+import { MainApp } from "./MainApp";
 
 export default function App() {
-  const [tab, setTab] = useState("chat");
-  const [health, setHealth] = useState(null);
-  const [healthError, setHealthError] = useState(null);
+  const [user, setUser] = useState(() => getStoredUser());
+  const [checking, setChecking] = useState(() => Boolean(getToken()));
 
   useEffect(() => {
-    fetchHealth()
-      .then((h) => {
-        setHealth(h);
-        setHealthError(null);
+    const token = getToken();
+    if (!token) {
+      setChecking(false);
+      return;
+    }
+    fetchMe()
+      .then((u) => {
+        setUser(u);
+        setChecking(false);
       })
       .catch(() => {
-        setHealth(null);
-        setHealthError(
-          "API unreachable — start backend: uvicorn backend.main:app --reload --port 8000",
-        );
+        clearAuth();
+        setUser(null);
+        setChecking(false);
       });
   }, []);
 
-  const synthOn = health?.synthesis_enabled ?? health?.openai_configured;
+  if (checking) {
+    return (
+      <div className="auth-screen auth-screen-loading">
+        <div className="app-bg" aria-hidden />
+        <p className="auth-sub">Loading…</p>
+      </div>
+    );
+  }
+
+  if (!user || !getToken()) {
+    return (
+      <AuthPage
+        onAuthenticated={(data) => {
+          setUser(data.user);
+        }}
+      />
+    );
+  }
 
   return (
-    <div className="app">
-      <div className="app-bg" aria-hidden />
-
-      <header className="header">
-        <div className="header-inner">
-          <div className="brand">
-            <div className="brand-mark" aria-hidden>
-              <span className="brand-icon">⚖</span>
-            </div>
-            <div>
-              <p className="eyebrow">India · RAG · educational</p>
-              <h1 className="title">
-                <span className="title-accent">{ADVISOR.name}</span>
-              </h1>
-              <p className="subtitle">
-                {ADVISOR.shortBio} — not a substitute for a real lawyer
-              </p>
-            </div>
-          </div>
-
-          <div className="status-cluster">
-            {healthError ? (
-              <span className="pill pill-warn">{healthError}</span>
-            ) : health ? (
-              <>
-                <span className="pill pill-glow">
-                  <span className="dot dot-ok" />
-                  {health.chroma_documents} chunks indexed
-                </span>
-                <span className={`pill ${synthOn ? "pill-glow" : "pill-muted"}`}>
-                  <span className={`dot ${synthOn ? "dot-ok" : "dot-off"}`} />
-                  {synthOn ? (
-                    <>
-                      LLM <strong>{health.llm_provider ?? "on"}</strong>
-                    </>
-                  ) : (
-                    <>Add GROQ or GEMINI key</>
-                  )}
-                </span>
-              </>
-            ) : (
-              <span className="pill pill-muted">Checking API…</span>
-            )}
-          </div>
-        </div>
-
-        <nav className="tabs" aria-label="Views">
-          <div className="tabs-inner">
-            <button
-              type="button"
-              className={`tab ${tab === "chat" ? "tab-on" : ""}`}
-              onClick={() => setTab("chat")}
-            >
-              <span className="tab-icon">💬</span>
-              Chat
-            </button>
-            <button
-              type="button"
-              className={`tab ${tab === "plan" ? "tab-on" : ""}`}
-              onClick={() => setTab("plan")}
-            >
-              <span className="tab-icon">📋</span>
-              Action plan
-            </button>
-          </div>
-        </nav>
-      </header>
-
-      <main className="main">
-        <div className="main-card">
-          {tab === "chat" ? <ChatPanel /> : <PlanPanel />}
-        </div>
-      </main>
-
-      <footer className="footer">
-        <p>
-          Outputs are for learning only. Verify against official sources and a
-          qualified advocate for your matter.
-        </p>
-        <p className="footer-note">
-          Face avatars via{" "}
-          <a href="https://www.dicebear.com" target="_blank" rel="noreferrer">
-            DiceBear
-          </a>
-          .
-        </p>
-      </footer>
-    </div>
+    <MainApp
+      user={user}
+      onLogout={() => {
+        setUser(null);
+      }}
+    />
   );
 }

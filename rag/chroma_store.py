@@ -10,8 +10,8 @@ from chromadb import Collection
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_CHROMA_PATH = ROOT / "chroma_db"
-DEFAULT_COLLECTION_NAME = "legal_rag"
+DEFAULT_CHROMA_PATH = ROOT / "chroma_db"## apna vectoe db isme hoga
+DEFAULT_COLLECTION_NAME = "legal_rag"## apna collection name isme hoga
 # Hugging Face repo id for sentence-transformers (downloads on first use).
 DEFAULT_EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 
@@ -35,7 +35,7 @@ def get_collection(
     client = get_client(persist_path)
     ef = embedding_function(model_name)
     return client.get_or_create_collection(name=name, embedding_function=ef)
-
+###ye jo vector store h uske liye likha h
 
 def jsonl_record_to_chroma_metadata(row: dict) -> dict[str, Any]:
     """Chroma metadata values must be str, int, float, or bool."""

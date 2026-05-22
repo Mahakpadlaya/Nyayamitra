@@ -48,3 +48,4 @@ def validate_chat_messages(messages: list[ChatMessageIn]) -> tuple[list[tuple[st
     if not latest:
         raise ValueError("at least one user message is required")
     return pairs, latest
+###ye jo chat krte iuska backend h

@@ -12,7 +12,7 @@ export const ADVISOR = {
    * https://commons.wikimedia.org/wiki/File:Gold_scales_icon.svg
    */
   avatarUrl:
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Gold_scales_icon.svg/256px-Gold_scales_icon.svg.png",
+    "https://api.dicebear.com/9.x/notionists/svg?seed=Felix",
   avatarAlt: "Scales of justice",
 };
 

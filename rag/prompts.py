@@ -51,7 +51,7 @@ CHAT_SYSTEM = (
     "If the latest message involves specific facts, emergencies, or criminal matters, "
     "add a sentence urging prompt consultation with a qualified lawyer in India."
 )
-
+###ye prompts h baad me aur 
 
 def ask_user_prompt(question: str, context_block: str) -> str:
     return f"QUESTION:\n{question}\n\nCONTEXT:\n{context_block}"

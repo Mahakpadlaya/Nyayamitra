@@ -11,9 +11,9 @@ import re
 import sys
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -30,6 +30,11 @@ from rag.chroma_store import get_collection  # noqa: E402
 from rag.retrieval import query_collection_reranked  # noqa: E402
 from rag import prompts  # noqa: E402
 from rag.schemas import ChatMessageIn, LegalGuidancePlan  # noqa: E402
+
+from backend.auth_routes import build_auth_router  # noqa: E402
+from backend.auth_utils import get_current_user_dep  # noqa: E402
+from backend.database import init_db, make_session_factory, sqlite_url  # noqa: E402
+from backend.models import User  # noqa: E402
 
 LLMChoice = Literal["auto", "openai", "groq", "gemini", "context_only"]
 
@@ -57,6 +62,10 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
     rag_top_k: int = 5
+
+    database_url: str = ""
+    jwt_secret: str = "dev-change-me-set-JWT_SECRET-in-env"
+    jwt_expire_minutes: int = 60 * 24 * 7  # 7 days
 
     @field_validator(
         "openai_api_key",
@@ -101,6 +110,38 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def _resolved_database_url() -> str:
+    """
+    Resolve SQLite URL to project root so cwd (backend/ vs repo root) does not
+    create a second empty legal_advisor.db under backend/.
+    """
+    url = get_settings().database_url.strip()
+    if not url:
+        return sqlite_url()
+    if url.startswith("sqlite:///./"):
+        rel = url.removeprefix("sqlite:///./")
+        return sqlite_url(ROOT / rel)
+    return url
+
+
+def _configure_auth() -> Any:
+    s = get_settings()
+    db_url = _resolved_database_url()
+    init_db(db_url)
+    session_factory = make_session_factory(db_url)
+    app.include_router(
+        build_auth_router(
+            session_factory,
+            jwt_secret=s.jwt_secret,
+            jwt_expire_minutes=s.jwt_expire_minutes,
+        )
+    )
+    return get_current_user_dep(session_factory, s.jwt_secret)
+
+
+_get_current_user = _configure_auth()
 
 
 class Source(BaseModel):
@@ -550,8 +591,7 @@ def _synthesize_plan_for_backend(
     return _synthesize_plan_gemini(question, sources, settings)
 
 
-@app.get("/health")
-def health() -> dict:
+def _health_payload() -> dict:
     try:
         n = _collection().count()
     except Exception:
@@ -572,8 +612,23 @@ def health() -> dict:
     }
 
 
+@app.get("/health")
+def health() -> dict:
+    return _health_payload()
+
+
+@app.head("/health")
+def health_head() -> Response:
+    """Render and some monitors probe with HEAD; GET-only returned 405."""
+    _health_payload()
+    return Response(status_code=200)
+
+
 @app.post("/api/ask", response_model=AskResponse)
-def ask(req: AskRequest) -> AskResponse:
+def ask(
+    req: AskRequest,
+    _user: Annotated[User, Depends(_get_current_user)],
+) -> AskResponse:
     settings = get_settings()
     k = req.k if req.k is not None else settings.rag_top_k
     sources, _ = _retrieve(req.question.strip(), k=k)
@@ -605,7 +660,10 @@ def ask(req: AskRequest) -> AskResponse:
 
 
 @app.post("/api/plan", response_model=PlanResponse)
-def plan(req: PlanRequest) -> PlanResponse:
+def plan(
+    req: PlanRequest,
+    _user: Annotated[User, Depends(_get_current_user)],
+) -> PlanResponse:
     settings = get_settings()
     k = req.k if req.k is not None else settings.rag_top_k
     q = req.question.strip()
@@ -630,7 +688,10 @@ def plan(req: PlanRequest) -> PlanResponse:
 
 
 @app.post("/api/chat", response_model=AskResponse)
-def chat(req: ChatRequest) -> AskResponse:
+def chat(
+    req: ChatRequest,
+    _user: Annotated[User, Depends(_get_current_user)],
+) -> AskResponse:
     settings = get_settings()
     try:
         pairs, latest_user = validate_chat_messages(req.messages)
