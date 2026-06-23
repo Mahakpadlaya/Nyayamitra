@@ -62,7 +62,17 @@ python scripts/ingest_chroma.py
 
 This recreates the local vector store in `chroma_db/`.
 
-## 5) Run backend
+## 5) Auth (SQLite + JWT)
+
+User accounts are stored in **`legal_advisor.db`** at the **project root** (`nyayamitra/legal_advisor.db`), not inside `backend/`. Open it with [DB Browser for SQLite](https://sqlitebrowser.org/) or run `python scripts/inspect_users_db.py` — the file is binary, so the IDE text view will not show rows. See `DATABASE_URL` and `JWT_SECRET` in `.env`.
+
+- **Sign up / log in** in the UI before Chat or Action plan.
+- API: `POST /api/auth/signup`, `POST /api/auth/login`, `GET /api/auth/me` (Bearer token).
+- Protected routes: `/api/ask`, `/api/chat`, `/api/plan` require `Authorization: Bearer <token>`.
+
+On **Render**, set a strong **`JWT_SECRET`**; SQLite data is ephemeral on free tier unless you add persistent disk.
+
+## 6) Run backend
 
 From project root:
 
@@ -75,7 +85,7 @@ Backend URLs:
 - API base: `http://127.0.0.1:8000`
 - Health: `http://127.0.0.1:8000/health`
 
-## 6) Run frontend
+## 7) Run frontend
 
 Open a second terminal:
 
@@ -90,7 +100,7 @@ Frontend URL:
 
 Vite is already configured to proxy `/api` and `/health` to backend `127.0.0.1:8000`.
 
-## 7) Quick smoke test (optional)
+## 8) Quick smoke test (optional)
 
 ```bash
 source .venv/bin/activate

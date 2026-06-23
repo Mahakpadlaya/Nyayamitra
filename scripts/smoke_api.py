@@ -20,6 +20,15 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 
+def _mock_user() -> MagicMock:
+    u = MagicMock()
+    u.id = 1
+    u.email = "smoke@test.local"
+    u.first_name = "Smoke"
+    u.last_name = "Test"
+    return u
+
+
 def _mock_collection() -> MagicMock:
     col = MagicMock()
     col.count.return_value = 2
@@ -50,14 +59,23 @@ def main() -> int:
     bm._collection.cache_clear()
     mock_col = _mock_collection()
 
+    mock_user = _mock_user()
+
     with patch.object(bm, "get_collection", return_value=mock_col):
         bm._collection.cache_clear()
         client = TestClient(bm.app)
+        bm.app.dependency_overrides[bm._get_current_user] = lambda: mock_user
 
         h = client.get("/health")
         ok = 200 <= h.status_code < 300
         print("GET /health", h.status_code, h.json() if ok else h.text)
         if not ok:
+            return 1
+
+        o = client.get("/openapi.json")
+        print("GET /openapi.json", o.status_code)
+        if o.status_code != 200:
+            print(o.text[:500])
             return 1
 
         body_plan = {"question": "What are Fundamental Rights under the Constitution of India?"}
@@ -104,6 +122,8 @@ def main() -> int:
         if bad.status_code != 400:
             print(bad.text)
             return 1
+
+        bm.app.dependency_overrides.clear()
 
     print("smoke_api: all checks passed")
     return 0

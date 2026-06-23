@@ -2,8 +2,6 @@
 from __future__ import annotations
 
 import re
-from typing import Annotated
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
@@ -115,7 +113,7 @@ def build_auth_router(
         return AuthResponse(access_token=token, user=UserPublic.model_validate(user))
 
     @router.get("/me", response_model=UserPublic)
-    def me(current_user: Annotated[User, Depends(get_current_user)]) -> UserPublic:
+    def me(current_user=Depends(get_current_user)) -> UserPublic:
         return UserPublic.model_validate(current_user)
 
     return router

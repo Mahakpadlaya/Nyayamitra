@@ -11,7 +11,7 @@ import re
 import sys
 from functools import lru_cache
 from pathlib import Path
-from typing import Annotated, Any, Literal
+from typing import Any, Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -34,7 +34,6 @@ from rag.schemas import ChatMessageIn, LegalGuidancePlan  # noqa: E402
 from backend.auth_routes import build_auth_router  # noqa: E402
 from backend.auth_utils import get_current_user_dep  # noqa: E402
 from backend.database import init_db, make_session_factory, sqlite_url  # noqa: E402
-from backend.models import User  # noqa: E402
 
 LLMChoice = Literal["auto", "openai", "groq", "gemini", "context_only"]
 
@@ -627,7 +626,7 @@ def health_head() -> Response:
 @app.post("/api/ask", response_model=AskResponse)
 def ask(
     req: AskRequest,
-    _user: Annotated[User, Depends(_get_current_user)],
+    _user=Depends(_get_current_user),
 ) -> AskResponse:
     settings = get_settings()
     k = req.k if req.k is not None else settings.rag_top_k
@@ -662,7 +661,7 @@ def ask(
 @app.post("/api/plan", response_model=PlanResponse)
 def plan(
     req: PlanRequest,
-    _user: Annotated[User, Depends(_get_current_user)],
+    _user=Depends(_get_current_user),
 ) -> PlanResponse:
     settings = get_settings()
     k = req.k if req.k is not None else settings.rag_top_k
@@ -690,7 +689,7 @@ def plan(
 @app.post("/api/chat", response_model=AskResponse)
 def chat(
     req: ChatRequest,
-    _user: Annotated[User, Depends(_get_current_user)],
+    _user=Depends(_get_current_user),
 ) -> AskResponse:
     settings = get_settings()
     try:
